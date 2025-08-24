@@ -1,213 +1,94 @@
 from portia import PlanBuilderV2, StepOutput, Input
 from ..schema.content_schemas import PublishingResults
 
-def create_multi_platform_publisher():
-    """Multi-platform content publishing system."""
+def create_notion_publisher():
+    """Notion-focused content publishing system for blog/site creation."""
     return (
-        PlanBuilderV2("Multi-Platform Publishing Pipeline")
+        PlanBuilderV2("Notion Blog Publishing Pipeline")
         
         .input(name="content_package", description="Complete content package to publish")
-        .input(name="publishing_schedule", description="When and where to publish")
-        .input(name="target_platforms", description="List of platforms to publish to")
-        .input(name="approval_required", description="Require human approval before publishing", default_value=True)
+        .input(name="publishing_schedule", description="When to publish")
+        .input(name="content_id", description="Content identifier for reports", default_value="default")
         
-        # Step 1: Format Content for Each Platform
+        # Step 1: Format Content for Notion
         .llm_step(
+            step_name="format_for_notion",
             task="""
-            Adapt content for each target platform: {target_platforms}
+            Optimize content for Notion blog/site publishing:
             
             Source content: {content_package}
             
-            For each platform, create optimized version considering:
-            1. Platform-specific character/word limits
-            2. Hashtag and mention conventions
-            3. Visual content requirements
-            4. Engagement optimization tactics
-            5. Platform algorithm preferences
-            6. Audience behavior patterns
+            Create Notion-optimized version considering:
+            1. Notion block structure and formatting
+            2. Proper heading hierarchy
+            3. Callout boxes and dividers
+            4. Code blocks and tables
+            5. Image placement and captions
+            6. Internal linking structure
+            7. Page properties and metadata
+            8. SEO-friendly page structure
             
-            Generate platform-specific versions maintaining core message consistency.
+            Generate a well-structured Notion page that functions as a professional blog post.
             """,
-            inputs=[
-                Input("target_platforms"),
-                Input("content_package")
-            ],
-         
+            inputs=[Input("content_package")]
         )
         
-        # Step 2: Human Approval Gate (if required)
-        .if_(
-            condition=lambda approval: approval == True,
-            args={"approval": Input("approval_required")}
-        )
-        .llm_step(
+        # Step 2: Publish to Notion
+        .single_tool_agent_step(
+            step_name="publish_to_notion",
+            tool="portia:mcp:mcp.notion.com:notion_create_pages",
             task="""
-            Review content for publishing approval:
+            Publish content to Notion as a blog post/site page:
             
-            Content package: {content_package}
-            Platform versions: {format_for_platforms}
+            Content: {format_for_notion}
             Publishing schedule: {publishing_schedule}
             
-            Assess:
-            1. Content quality and accuracy
-            2. Brand voice consistency
-            3. Legal/compliance considerations
-            4. Timing appropriateness
-            5. Platform optimization quality
+            Tasks:
+            1. Log into Notion workspace
+            2. Navigate to designated blog/site database
+            3. Create new page with optimized content
+            4. Add proper Notion blocks (headings, text, callouts, dividers)
+            5. Set page properties (title, tags, publish date, status)
+            6. Configure page for public sharing/site publication
+            7. Enable comments if desired
+            8. Get published page URL
+            9. Verify page displays correctly in site view
             
-            Determine if human approval is needed based on:
-            - Sensitive topics
-            - High-stakes campaigns
-            - New audience segments
-            - Regulatory considerations
-            
-            If approval needed, raise clarification with specific review points.
+            Focus on creating a professional blog post that leverages Notion's site capabilities.
             """,
             inputs=[
-                Input("content_package"),
-                StepOutput("format_for_platforms"),
+                StepOutput("format_for_notion"),
                 Input("publishing_schedule")
-            ],
-           
+            ]
         )
-        .endif()
         
-        # Step 3: WordPress Publishing
-        .if_(
-            condition="'wordpress' in target_platforms",
-            args={"target_platforms": Input("target_platforms")}
-        )
-        .single_tool_agent_step(
-            tool="browser_tool",
-            task="""
-            Publish content to WordPress:
-            
-            Content: {format_for_platforms.wordpress_version}
-            
-            Tasks:
-            1. Log into WordPress admin
-            2. Create new post with optimized content
-            3. Add featured image and alt text
-            4. Set categories and tags
-            5. Configure SEO settings
-            6. Schedule or publish based on timing
-            7. Verify publication and get URL
-            """,
-            inputs=[StepOutput("format_for_platforms")],
-            
-        )
-        .endif()
-        
-        # Step 4: YouTube Publishing
-        .if_(
-            condition="'youtube' in target_platforms",
-            args={"target_platforms": Input("target_platforms")}
-        )
-        .single_tool_agent_step(
-            tool="browser_tool", 
-            task="""
-            Upload video to YouTube:
-            
-            Video metadata: {format_for_platforms.youtube_version}
-            
-            Tasks:
-            1. Access YouTube Studio
-            2. Upload video file
-            3. Add optimized title and description
-            4. Set appropriate tags
-            5. Upload custom thumbnail
-            6. Configure end screens and cards
-            7. Set visibility and schedule
-            8. Get video URL and analytics setup
-            """,
-            inputs=[StepOutput("format_for_platforms")],
-           
-        )
-        .endif()
-        
-        # Step 5: Social Media Publishing
-        .if_(
-            condition="any platform in ['twitter', 'linkedin', 'facebook', 'instagram'] in target_platforms",
-            args={"target_platforms": Input("target_platforms")}
-        )
-        .invoke_tool_step(
-            step_name="publish_to_social_media",
-            tool="apify_actor",
-            args={
-                "actor_id": "apify/social-media-publisher",  # If available
-                "input": {
-                    "platforms": Input("target_platforms"),
-                    "content_variants": StepOutput("format_for_platforms"),
-                    "schedule": Input("publishing_schedule")
-                }
-            }
-        )
-        .endif()
-        
-        # Step 6: Podcast Distribution
-        .if_(
-            condition="'podcast' in content_package.content_types",
-            args={"content_package": Input("content_package")}
-        )
-        .llm_step(
-            task="""
-            Prepare podcast for distribution:
-            
-            Podcast content: {content_package.podcast_version}
-            
-            Create distribution package with:
-            1. RSS feed updates
-            2. Spotify podcast submission
-            3. Apple Podcasts metadata
-            4. Google Podcasts optimization
-            5. Episode show notes formatting
-            6. Transcript preparation
-            7. Social media promotion posts
-            """,
-            inputs=[Input("content_package")],
-           
-        )
-        .endif()
-        
-        # Step 7: Track Publishing Results
+        # Step 3: Track Publishing Results
         .function_step(
-            function=lambda wordpress, youtube, social, podcast, platforms: {
+            step_name="compile_publishing_results",
+            function=lambda notion_result, content_id: {
                 "platform_results": {
-                    "wordpress": wordpress if wordpress else "not_published",
-                    "youtube": youtube if youtube else "not_published", 
-                    "social_media": social if social else "not_published",
-                    "podcast": podcast if podcast else "not_published"
+                    "notion": "published" if notion_result else "not_published"
                 },
-                "published_urls": [
-                    url for url in [
-                        wordpress.get("url") if wordpress else None,
-                        youtube.get("url") if youtube else None,
-                        social.get("urls") if social else None
-                    ] if url
-                ],
+                "published_urls": [],
                 "publishing_timestamp": "2025-08-24T04:30:00Z",
-                "platforms_targeted": platforms,
-                "status": "published"
+                "content_id": content_id,
+                "status": "completed"
             },
             args={
-                "wordpress": StepOutput("publish_to_wordpress"),
-                "youtube": StepOutput("publish_to_youtube"),
-                "social": StepOutput("publish_to_social_media"),
-                "podcast": StepOutput("distribute_podcast"),
-                "platforms": Input("target_platforms")
-            },
-          
-        )
-        
-        # Step 8: Save Publishing Report
-        .invoke_tool_step(
-            step_name="save_publishing_report",
-            tool="file_writer_tool",
-            args={
-                "filename": f"publishing_reports/publication_report_{Input('content_id', 'default')}.json",
-                "content": StepOutput("compile_publishing_results")
+                "notion_result": StepOutput("publish_to_notion"),
+                "content_id": Input("content_id")
             }
         )
+        
+        # Step 4: Save Publishing Report
+        # .invoke_tool_step(
+        #     step_name="save_publishing_report",
+        #     tool="file_writer_tool",
+        #     args={
+        #         "filename": f"publishing_reports/notion_publication_report_{Input('content_id')}.json",
+        #         "content": StepOutput("compile_publishing_results")
+        #     }
+        # )
         
         .final_output(output_schema=PublishingResults)
         .build()
