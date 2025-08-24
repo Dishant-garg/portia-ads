@@ -45,7 +45,7 @@ def create_notion_publisher():
             
             Tasks:
             1. Log into Notion workspace
-            2. Navigate to designated blog/site database
+            2. use the tool to create a new page
             3. Create new page with optimized content
             4. Add proper Notion blocks (headings, text, callouts, dividers)
             5. Set page properties (title, tags, publish date, status)
@@ -89,7 +89,10 @@ def create_notion_publisher():
         #         "content": StepOutput("compile_publishing_results")
         #     }
         # )
-        
+
+
+
+
         .final_output(output_schema=PublishingResults)
         .build()
     )

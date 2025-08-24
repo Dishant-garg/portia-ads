@@ -17,7 +17,7 @@ def create_podcast_production_system():
             step_name="research_podcast_content",
             tool="search_tool",
             args={
-                "query": f"{Input('episode_topic')} podcast interviews expert insights recent developments 2024"
+                "search_query": f"{Input('episode_topic')} podcast interviews expert insights recent developments 2024"
             }
         )
         
@@ -26,12 +26,13 @@ def create_podcast_production_system():
             step_name="analyze_similar_podcasts",
             tool="search_tool",
             args={
-                "query": f"popular podcasts about {Input('episode_topic')} high engagement format structure"
+                "search_query": f"popular podcasts about {Input('episode_topic')} high engagement format structure"
             }
         )
         
         # Step 3: Create Podcast Script Structure
         .llm_step(
+            step_name="create_podcast_script",
             task="""
             Create detailed podcast script for: {episode_topic}
             
@@ -80,12 +81,12 @@ def create_podcast_production_system():
                 Input("target_duration"),
                 Input("host_style"),
                 Input("episode_number")
-            ],
-          
+            ]
         )
         
         # Step 4: Generate Show Notes
         .llm_step(
+            step_name="generate_show_notes",
             task="""
             Create comprehensive show notes for podcast episode:
             
@@ -107,12 +108,12 @@ def create_podcast_production_system():
                 StepOutput("create_podcast_script"),
                 Input("episode_topic"),
                 Input("episode_number")
-            ],
-          
+            ]
         )
         
         # Step 5: Create Chapter Markers
         .llm_step(
+            step_name="create_chapter_markers",
             task="""
             Create chapter markers from podcast script: {create_podcast_script}
             
@@ -127,12 +128,12 @@ def create_podcast_production_system():
             inputs=[
                 StepOutput("create_podcast_script"),
                 Input("target_duration")
-            ],
-          
+            ]
         )
         
         # Step 6: Generate Audio Production Instructions
         .llm_step(
+            step_name="create_audio_instructions",
             task="""
             Create audio production instructions:
             
@@ -153,12 +154,12 @@ def create_podcast_production_system():
                 StepOutput("create_podcast_script"),
                 Input("host_style"),
                 Input("target_duration")
-            ],
-          
+            ]
         )
         
         # Step 7: Package Episode Materials
         .function_step(
+            step_name="package_episode_materials",
             function=lambda script, notes, chapters, audio, topic, episode: {
                 "episode_script": script,
                 "show_notes": notes,
@@ -168,7 +169,7 @@ def create_podcast_production_system():
                     "title": f"Episode {episode}: {topic}",
                     "episode_number": episode,
                     "topic": topic,
-                    "estimated_duration": f"{Input('target_duration')} minutes",
+                    "estimated_duration": f"25 minutes",
                     "created_date": "2025-08-24",
                     "status": "ready_for_production"
                 }
@@ -180,8 +181,7 @@ def create_podcast_production_system():
                 "audio": StepOutput("create_audio_instructions"),
                 "topic": Input("episode_topic"),
                 "episode": Input("episode_number")
-            },
-           
+            }
         )
         
         # Step 8: Save Podcast Package
@@ -212,6 +212,7 @@ def create_podcast_audio_production():
         
         # Step 1: Prepare Script for TTS
         .llm_step(
+            step_name="prepare_tts_script",
             task="""
             Prepare script for text-to-speech production: {podcast_script}
             
@@ -227,12 +228,12 @@ def create_podcast_audio_production():
             inputs=[
                 Input("podcast_script"),
                 Input("voice_settings")
-            ],
-           
+            ]
         )
         
         # Step 2: Create Audio Segments Plan
         .llm_step(
+            step_name="create_audio_plan",
             task="""
             Create audio production plan: {prepare_tts_script}
             
@@ -249,9 +250,7 @@ def create_podcast_audio_production():
             inputs=[
                 StepOutput("prepare_tts_script"),
                 Input("background_music")
-            ],
-            
-            
+            ]
         )
         
         .final_output(
