@@ -62,11 +62,12 @@ class PodcastPackage(BaseModel):
 class VideoPackage(BaseModel):
     """Schema for video production output."""
     video_script: str = Field(description="Complete video script")
-    shot_list: List[Dict] = Field(description="Shot list with timing")
-    asset_requirements: List[str] = Field(description="Required visual assets")
+    shot_list: List[str] = Field(description="Shot list for the video")
     thumbnail_concepts: List[str] = Field(description="Thumbnail design concepts")
-    video_metadata: Dict[str, Any] = Field(description="Video metadata")
+    video_metadata: Dict[str, Any] = Field(description="Video metadata (title, description, tags, etc.)")
     editing_instructions: str = Field(description="Video editing instructions")
+    video_url: str = Field(description="URL to the generated video")
+    production_details: Dict[str, Any] = Field(description="Additional production details such as topic, platform, estimated time, equipment, and status")
 
 class PublishingResults(BaseModel):
     """Schema for publishing results."""
