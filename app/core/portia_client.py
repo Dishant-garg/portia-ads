@@ -13,6 +13,7 @@ from portia import (
 from portia.open_source_tools.registry import open_source_tool_registry
 from typing import List, Optional
 from portia.plan import PlanBuilder
+from app.custom_tools.registry import custom_tool_registry
 
 load_dotenv()
 
@@ -21,7 +22,7 @@ class PortiaClient:
         # Initialize Portia with all tools and debug logging
         self.portia = Portia(
             Config.from_default(default_log_level=LogLevel.DEBUG),
-            tools=(open_source_tool_registry+PortiaToolRegistry(default_config()))
+            tools=(open_source_tool_registry+PortiaToolRegistry(default_config())+custom_tool_registry)
         )
 
     def list_tool_ids(self):
