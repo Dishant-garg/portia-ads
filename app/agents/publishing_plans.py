@@ -1,5 +1,5 @@
 from portia import PlanBuilderV2, StepOutput, Input
-from schema.content_schemas import PublishingResults
+from ..schema.content_schemas import PublishingResults
 
 def create_multi_platform_publisher():
     """Multi-platform content publishing system."""
@@ -32,7 +32,7 @@ def create_multi_platform_publisher():
                 Input("target_platforms"),
                 Input("content_package")
             ],
-            name="format_for_platforms"
+         
         )
         
         # Step 2: Human Approval Gate (if required)
@@ -68,7 +68,7 @@ def create_multi_platform_publisher():
                 StepOutput("format_for_platforms"),
                 Input("publishing_schedule")
             ],
-            name="approval_review"
+           
         )
         .endif()
         
@@ -94,7 +94,7 @@ def create_multi_platform_publisher():
             7. Verify publication and get URL
             """,
             inputs=[StepOutput("format_for_platforms")],
-            name="publish_to_wordpress"
+            
         )
         .endif()
         
@@ -121,7 +121,7 @@ def create_multi_platform_publisher():
             8. Get video URL and analytics setup
             """,
             inputs=[StepOutput("format_for_platforms")],
-            name="publish_to_youtube"
+           
         )
         .endif()
         
@@ -165,7 +165,7 @@ def create_multi_platform_publisher():
             7. Social media promotion posts
             """,
             inputs=[Input("content_package")],
-            name="distribute_podcast"
+           
         )
         .endif()
         
@@ -196,7 +196,7 @@ def create_multi_platform_publisher():
                 "podcast": StepOutput("distribute_podcast"),
                 "platforms": Input("target_platforms")
             },
-            name="compile_publishing_results"
+          
         )
         
         # Step 8: Save Publishing Report

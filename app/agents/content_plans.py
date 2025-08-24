@@ -1,5 +1,5 @@
 from portia import PlanBuilderV2, StepOutput, Input
-from schema.content_schemas import ContentPlan, ContentPackage, FactCheckReport
+from ..schema.content_schemas import ContentPlan, ContentPackage, FactCheckReport
 
 def create_content_planning_system():
     """Create comprehensive content planning system."""
@@ -22,6 +22,7 @@ def create_content_planning_system():
         
         # Step 2: Create Content Calendar
         .llm_step(
+            step_name="create_content_calendar",
             task="""
             Create a comprehensive 30-day content calendar based on:
             
@@ -49,12 +50,12 @@ def create_content_planning_system():
                 Input("brand_guidelines"),
                 Input("publishing_frequency"),
                 StepOutput("research_posting_times")
-            ],
-            name="create_content_calendar"
+            ]
         )
         
         # Step 3: Develop Cross-Platform Strategy
         .llm_step(
+            step_name="develop_cross_platform_strategy",
             task="""
             Develop cross-platform content strategy:
             
@@ -68,8 +69,7 @@ def create_content_planning_system():
             5. Building content series and themes
             6. Community engagement approach
             """,
-            inputs=[StepOutput("create_content_calendar")],
-            name="develop_cross_platform_strategy"
+            inputs=[StepOutput("create_content_calendar")]
         )
         
         # Step 4: Save Content Plan
@@ -117,6 +117,7 @@ def create_article_writing_system():
         
         # Step 3: Create Article Outline
         .llm_step(
+            step_name="create_article_outline",
             task="""
             Create detailed article outline for: {topic}
             
@@ -146,12 +147,12 @@ def create_article_writing_system():
                 Input("word_count_target"),
                 Input("audience_level"),
                 Input("content_angle")
-            ],
-            name="create_article_outline"
+            ]
         )
         
         # Step 4: Write Complete Article
         .llm_step(
+            step_name="write_full_article",
             task="""
             Write complete article based on outline: {create_article_outline}
             
@@ -172,12 +173,12 @@ def create_article_writing_system():
                 StepOutput("create_article_outline"),
                 Input("word_count_target"),
                 Input("audience_level")
-            ],
-            name="write_full_article"
+            ]
         )
         
         # Step 5: Create Social Media Variants
         .llm_step(
+            step_name="create_social_variants",
             task="""
             Create social media variants from article: {write_full_article}
             
@@ -191,12 +192,12 @@ def create_article_writing_system():
             
             Maintain core message while adapting to platform requirements and audiences.
             """,
-            inputs=[StepOutput("write_full_article")],
-            name="create_social_variants"
+            inputs=[StepOutput("write_full_article")]
         )
         
         # Step 6: SEO Optimization Check
         .llm_step(
+            step_name="seo_optimization_check",
             task="""
             Analyze article for SEO optimization: {write_full_article}
             
@@ -217,12 +218,12 @@ def create_article_writing_system():
             inputs=[
                 StepOutput("write_full_article"),
                 Input("target_keywords")
-            ],
-            name="seo_optimization_check"
+            ]
         )
         
         # Step 7: Save Content Package
         .function_step(
+            step_name="package_content",
             function=lambda article, social, seo, keywords: {
                 "main_article": article,
                 "social_variants": social,
@@ -236,8 +237,7 @@ def create_article_writing_system():
                 "social": StepOutput("create_social_variants"),
                 "seo": StepOutput("seo_optimization_check"),
                 "keywords": Input("target_keywords")
-            },
-            name="package_content"
+            }
         )
         
         .invoke_tool_step(
@@ -263,6 +263,7 @@ def create_fact_checking_system():
         
         # Step 1: Extract Claims
         .llm_step(
+            step_name="extract_claims",
             task="""
             Extract all factual claims from content that need verification:
             
@@ -276,8 +277,7 @@ def create_fact_checking_system():
             
             Focus on claims that could be disputed or need authoritative sources.
             """,
-            inputs=[Input("content_to_verify")],
-            name="extract_claims"
+            inputs=[Input("content_to_verify")]
         )
         
         # Step 2: Verify Each Critical Claim
@@ -300,17 +300,18 @@ def create_fact_checking_system():
         
         # Step 4: Extract Source Content
         .single_tool_agent_step(
+            step_name="extract_verification_sources",
             tool="extract_tool",
             task="Extract detailed content from the most reliable sources found",
             inputs=[
                 StepOutput("verify_critical_claims"),
                 StepOutput("find_authoritative_sources")
-            ],
-            name="extract_verification_sources"
+            ]
         )
         
         # Step 5: Cross-Reference and Verify
         .llm_step(
+            step_name="generate_verification_report",
             task="""
             Cross-reference claims with verification sources:
             
@@ -336,8 +337,7 @@ def create_fact_checking_system():
                 StepOutput("find_authoritative_sources"),
                 StepOutput("extract_verification_sources"),
                 Input("verification_level")
-            ],
-            name="generate_verification_report"
+            ]
         )
         
         # Step 6: Create Corrected Version (if needed)
@@ -346,6 +346,7 @@ def create_fact_checking_system():
             args={"verification_report": StepOutput("generate_verification_report")}
         )
         .llm_step(
+            step_name="create_corrected_content",
             task="""
             Create corrected version of content based on fact-checking:
             
@@ -361,8 +362,7 @@ def create_fact_checking_system():
             inputs=[
                 Input("content_to_verify"),
                 StepOutput("generate_verification_report")
-            ],
-            name="create_corrected_content"
+            ]
         )
         .endif()
         

@@ -1,5 +1,5 @@
 from portia import PlanBuilderV2, StepOutput, Input
-from schema.content_schemas import VideoPackage
+from ..schema.content_schemas import VideoPackage
 
 def create_video_production_system():
     """Complete video production pipeline."""

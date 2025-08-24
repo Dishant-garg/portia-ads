@@ -1,5 +1,5 @@
-from agents.research_plans import create_market_research_plan
-from core.portia_client import PortiaClient
+from app.agents.research_plans import create_market_research_plan
+from app.core.portia_client import PortiaClient
 
 def test_run_market_research_plan():
     client = PortiaClient()

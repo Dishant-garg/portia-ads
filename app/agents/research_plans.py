@@ -1,5 +1,5 @@
 from portia import PlanBuilderV2, StepOutput, Input
-from schema.content_schemas import ResearchSummary, WebRagResult
+from ..schema.content_schemas import ResearchSummary, WebRagResult
 
 def create_market_research_plan():
     """Creates comprehensive market research plan using PlanBuilderV2."""
@@ -93,12 +93,15 @@ def create_market_research_plan():
         
         # Step 7: Synthesize Research Findings
         .llm_step(
+            step_name="synthesize_research",
             task=f"""
             Analyze all research data and create comprehensive market research summary for {Input('topic')}:
             
             Data sources:
             - Google trends: {{analyze_google_trends}}
-            - Competitor analysis: {{extract_competitor_content if competitor_domains else search_competitor_content}}
+            - Competitor crawl: {{crawl_competitor_sites}}
+            - Competitor analysis: {{extract_competitor_content}}
+            - Competitor content: {{search_competitor_content}}
             - Industry reports: {{find_industry_reports}}
             - Video content trends: {{analyze_youtube_content}}
             - Target audience: {Input('target_audience')}
@@ -115,9 +118,10 @@ def create_market_research_plan():
             """,
             inputs=[
                 StepOutput("analyze_google_trends"),
-                StepOutput("mine_social_trends"), 
+                StepOutput("crawl_competitor_sites"),
+                StepOutput("extract_competitor_content"),
+                StepOutput("search_competitor_content"),
                 StepOutput("find_industry_reports"),
-                StepOutput("analyze_reddit_discussions"),
                 StepOutput("analyze_youtube_content"),
                 Input("topic"),
                 Input("target_audience")

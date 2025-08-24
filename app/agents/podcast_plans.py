@@ -1,5 +1,5 @@
 from portia import PlanBuilderV2, StepOutput, Input
-from schema.content_schemas import PodcastPackage
+from ..schema.content_schemas import PodcastPackage
 
 def create_podcast_production_system():
     """Complete podcast production pipeline."""
@@ -81,7 +81,7 @@ def create_podcast_production_system():
                 Input("host_style"),
                 Input("episode_number")
             ],
-            name="create_podcast_script"
+          
         )
         
         # Step 4: Generate Show Notes
@@ -108,7 +108,7 @@ def create_podcast_production_system():
                 Input("episode_topic"),
                 Input("episode_number")
             ],
-            name="generate_show_notes"
+          
         )
         
         # Step 5: Create Chapter Markers
@@ -128,7 +128,7 @@ def create_podcast_production_system():
                 StepOutput("create_podcast_script"),
                 Input("target_duration")
             ],
-            name="create_chapter_markers"
+          
         )
         
         # Step 6: Generate Audio Production Instructions
@@ -154,7 +154,7 @@ def create_podcast_production_system():
                 Input("host_style"),
                 Input("target_duration")
             ],
-            name="create_audio_instructions"
+          
         )
         
         # Step 7: Package Episode Materials
@@ -181,7 +181,7 @@ def create_podcast_production_system():
                 "topic": Input("episode_topic"),
                 "episode": Input("episode_number")
             },
-            name="package_episode_materials"
+           
         )
         
         # Step 8: Save Podcast Package
@@ -228,7 +228,7 @@ def create_podcast_audio_production():
                 Input("podcast_script"),
                 Input("voice_settings")
             ],
-            name="prepare_tts_script"
+           
         )
         
         # Step 2: Create Audio Segments Plan
@@ -250,7 +250,7 @@ def create_podcast_audio_production():
                 StepOutput("prepare_tts_script"),
                 Input("background_music")
             ],
-            name="create_audio_production_plan"
+            
         )
         
         .final_output(
