@@ -283,7 +283,7 @@ def create_podcast_audio_production():
         .function_step(
             step_name="extract_spoken_content",
             function=extract_spoken_content,
-            args={"audio_segments_plan": StepOutput("prepare_tts_script")}
+            args={"text": StepOutput("prepare_tts_script")}
         )
 
         # Step 4: Generate Podcast Audio (after segment plan, using only the clean script)
