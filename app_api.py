@@ -279,7 +279,37 @@ def podcast_production():
         
         plan = create_podcast_production_system()
         result = client.run_plan2(plan, plan_run_inputs=data)
-        return jsonify({"result": result})
+        
+        # Get podcast episodes folder contents
+        podcast_episodes = {}
+        episodes_folder = "podcast_episodes"
+        if os.path.exists(episodes_folder):
+            for filename in os.listdir(episodes_folder):
+                file_path = os.path.join(episodes_folder, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            if filename.endswith('.json'):
+                                if content.strip():
+                                    try:
+                                        podcast_episodes[filename] = json.loads(content)
+                                    except json.JSONDecodeError as json_err:
+                                        podcast_episodes[filename] = {
+                                            "error": f"Invalid JSON format: {str(json_err)}",
+                                            "raw_content": content[:500] + "..." if len(content) > 500 else content
+                                        }
+                                else:
+                                    podcast_episodes[filename] = {"error": "Empty JSON file"}
+                            else:
+                                podcast_episodes[filename] = content
+                    except Exception as e:
+                        podcast_episodes[filename] = f"Error reading file: {str(e)}"
+        
+        return jsonify({
+            "result": result,
+            "podcast_episodes": podcast_episodes
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -298,7 +328,91 @@ def video_production():
         
         plan = create_video_production_system()
         result = client.run_plan2(plan, plan_run_inputs=data)
-        return jsonify({"result": result})
+        
+        # Extract video link from result
+        video_link = None
+        try:
+            # Parse the result to find video URL
+            if isinstance(result, dict):
+                # Look for video URL in various possible locations
+                for key, value in result.items():
+                    if "step_" in str(key) and "output" in str(key):
+                        if isinstance(value, dict) and "value" in value:
+                            step_value = value["value"]
+                            if isinstance(step_value, str):
+                                # Parse JSON string if needed
+                                try:
+                                    import json as json_lib
+                                    parsed_value = json_lib.loads(step_value)
+                                    if isinstance(parsed_value, dict) and "content" in parsed_value:
+                                        for content_item in parsed_value["content"]:
+                                            if content_item.get("type") == "text":
+                                                text = content_item.get("text", "")
+                                                if "ai.invideo.io" in text:
+                                                    video_link = text
+                                                    break
+                                except:
+                                    # If not JSON, check if it's a direct URL
+                                    if "ai.invideo.io" in step_value:
+                                        video_link = step_value
+                            elif "ai.invideo.io" in str(step_value):
+                                video_link = str(step_value)
+                        elif isinstance(value, str) and "ai.invideo.io" in value:
+                            video_link = value
+                
+                # Also check direct result content
+                if not video_link and "content" in result:
+                    content = result["content"]
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "text":
+                                text = item.get("text", "")
+                                if "ai.invideo.io" in text:
+                                    video_link = text
+                                    break
+            
+            # Fallback: search in string representation
+            if not video_link:
+                result_str = str(result)
+                import re
+                url_pattern = r'https://ai\.invideo\.io/[^\s"\']*'
+                matches = re.findall(url_pattern, result_str)
+                if matches:
+                    video_link = matches[0]
+        except Exception as e:
+            print(f"Error extracting video link: {e}")
+        
+        # Get video production folder contents
+        video_production_files = {}
+        video_folder = "video_production"
+        if os.path.exists(video_folder):
+            for filename in os.listdir(video_folder):
+                file_path = os.path.join(video_folder, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            if filename.endswith('.json'):
+                                if content.strip():
+                                    try:
+                                        video_production_files[filename] = json.loads(content)
+                                    except json.JSONDecodeError as json_err:
+                                        video_production_files[filename] = {
+                                            "error": f"Invalid JSON format: {str(json_err)}",
+                                            "raw_content": content[:500] + "..." if len(content) > 500 else content
+                                        }
+                                else:
+                                    video_production_files[filename] = {"error": "Empty JSON file"}
+                            else:
+                                video_production_files[filename] = content
+                    except Exception as e:
+                        video_production_files[filename] = f"Error reading file: {str(e)}"
+        
+        return jsonify({
+            "result": result,
+            "video_link": video_link,
+            "video_production_files": video_production_files
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
