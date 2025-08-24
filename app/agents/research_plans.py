@@ -1,6 +1,7 @@
 from portia import PlanBuilderV2, StepOutput, Input
 from ..schema.content_schemas import ResearchSummary, WebRagResult
 
+
 def create_market_research_plan():
     """Creates comprehensive market research plan using PlanBuilderV2."""
     return (
@@ -127,7 +128,24 @@ def create_market_research_plan():
                 Input("target_audience")
             ]
         )
-        
+        .invoke_tool_step(
+            step_name="create_reports_folder",
+            tool="make_directory_tool",
+            args={
+                "path": "research_reports"
+            }
+        )
+
+        # Step 9: Create a summary file in the folder (optional, can be used for a quick summary or log)
+        .invoke_tool_step(
+            step_name="create_summary_file",
+            tool="make_file_in_folder_tool",
+            args={
+                "folder_path": "research_reports",
+                "filename": f"{Input('topic')}_summary.txt",
+                "content": StepOutput("synthesize_research")
+            }
+        )
         # Step 8: Save Research Report
         .invoke_tool_step(
             step_name="save_research_report",
