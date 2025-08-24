@@ -160,7 +160,7 @@ def create_podcast_production_system():
         # Step 7: Package Episode Materials
         .function_step(
             step_name="package_episode_materials",
-            function=lambda script, notes, chapters, audio, topic, episode: {
+            function=lambda script, notes, chapters, audio, topic, episode, duration: {
                 "episode_script": script,
                 "show_notes": notes,
                 "chapter_markers": chapters,
@@ -169,7 +169,7 @@ def create_podcast_production_system():
                     "title": f"Episode {episode}: {topic}",
                     "episode_number": episode,
                     "topic": topic,
-                    "estimated_duration": f"25 minutes",
+                    "estimated_duration": f"{duration} minutes",
                     "created_date": "2025-08-24",
                     "status": "ready_for_production"
                 }
@@ -180,11 +180,21 @@ def create_podcast_production_system():
                 "chapters": StepOutput("create_chapter_markers"),
                 "audio": StepOutput("create_audio_instructions"),
                 "topic": Input("episode_topic"),
-                "episode": Input("episode_number")
+                "episode": Input("episode_number"),
+                "duration": Input("target_duration")
             }
         )
-        
-        # Step 8: Save Podcast Package
+
+        # Step 8: Ensure podcast_episodes folder exists
+        .invoke_tool_step(
+            step_name="create_podcast_folder",
+            tool="make_directory_tool",
+            args={
+                "path": "podcast_episodes"
+            }
+        )
+
+        # Step 9: Save Podcast Package
         .invoke_tool_step(
             step_name="save_podcast_package",
             tool="file_writer_tool",
@@ -193,10 +203,28 @@ def create_podcast_production_system():
                 "content": StepOutput("package_episode_materials")
             }
         )
-        
+
         .final_output(output_schema=PodcastPackage)
         .build()
     )
+
+import re
+
+def extract_spoken_content(text: str) -> str:
+    # Try to extract content between <speak>...</speak> tags
+    match = re.search(r"<speak>(.*?)</speak>", text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    # Otherwise, try to extract lines that look like dialogue or narration
+    lines = text.splitlines()
+    spoken_lines = []
+    for line in lines:
+        # Heuristic: skip lines that are bullet points, section headers, or instructions
+        if line.strip().startswith("*") or line.strip().startswith("**") or ":" in line:
+            continue
+        if line.strip():
+            spoken_lines.append(line.strip())
+    return "\n".join(spoken_lines)
 
 def create_podcast_audio_production():
     """Audio production pipeline using text-to-speech."""
@@ -204,41 +232,38 @@ def create_podcast_audio_production():
         PlanBuilderV2("Podcast Audio Production Pipeline")
         
         .input(name="podcast_script", description="Complete podcast script")
-        .input(name="voice_settings", description="Voice configuration", default_value={"voice": "professional", "speed": 1.0})
+        .input(name="voice_id", description="ElevenLabs voice ID", default_value="JBFqnCBsd6RMkjVDRZzb")
+        .input(name="model_id", description="Model ID for TTS", default_value="eleven_multilingual_v2")
+        .input(name="output_format", description="Audio output format", default_value="mp3_44100_128")
+        .input(name="output_path", description="Where to save the audio file", default_value="podcast_episodes/episode_audio.mp3")
         .input(name="background_music", description="Background music preferences", default_value="subtle_ambient")
         
-        # Note: This would use text-to-speech tools when available
-        # For now, creating production instructions
-        
-        # Step 1: Prepare Script for TTS
+        # Step 1: Prepare TTS Script
         .llm_step(
             step_name="prepare_tts_script",
             task="""
-            Prepare script for text-to-speech production: {podcast_script}
-            
-            Voice settings: {voice_settings}
-            
-            Create TTS-optimized version with:
-            1. SSML tags for emphasis and pauses
-            2. Pronunciation guides for difficult words
-            3. Pacing instructions
-            4. Segment breaks for processing
-            5. Audio cue markers for music/effects
+            Prepare the following podcast script for text-to-speech production. 
+            Output ONLY the SSML or plain text that should be spoken, with no instructions or bullet points.
+            If possible, wrap the output in <speak>...</speak> tags.
+
+            Podcast script:
+            {podcast_script}
             """,
             inputs=[
-                Input("podcast_script"),
-                Input("voice_settings")
+                Input("podcast_script")
             ]
         )
         
         # Step 2: Create Audio Segments Plan
         .llm_step(
-            step_name="create_audio_plan",
+            step_name="create_audio_segments_plan",
             task="""
-            Create audio production plan: {prepare_tts_script}
-            
-            Background music: {background_music}
-            
+            Given the TTS-ready script below, create an audio production plan for the editor.
+            DO NOT repeat or reformat the script itself—just describe music, transitions, mixing, and effects.
+
+            TTS Script:
+            {prepare_tts_script}
+
             Plan includes:
             1. Intro music (10-15 seconds)
             2. Main content segments with transitions
@@ -246,11 +271,32 @@ def create_podcast_audio_production():
             4. Outro music (10-15 seconds)
             5. Chapter transition effects
             6. Overall mixing guidelines
+            7. Keep it concise and clear and under 1000 words.
             """,
             inputs=[
                 StepOutput("prepare_tts_script"),
                 Input("background_music")
             ]
+        )
+
+        # Step 3: Extract only the spoken content (from the TTS script)
+        .function_step(
+            step_name="extract_spoken_content",
+            function=extract_spoken_content,
+            args={"audio_segments_plan": StepOutput("prepare_tts_script")}
+        )
+
+        # Step 4: Generate Podcast Audio (after segment plan, using only the clean script)
+        .invoke_tool_step(
+            step_name="generate_podcast_audio",
+            tool="elevenlabs_tts_tool",
+            args={
+                "text": StepOutput("extract_spoken_content"),
+                "voice_id": Input("voice_id"),
+                "model_id": Input("model_id"),
+                "output_format": Input("output_format"),
+                "output_path": Input("output_path")
+            }
         )
         
         .final_output(
