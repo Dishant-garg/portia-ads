@@ -77,7 +77,7 @@ def create_content_planning_system():
             step_name="save_content_plan",
             tool="file_writer_tool",
             args={
-                "filename": "content_plans/master_content_plan.json",
+                "filename": "content_plans/master_content_plan",
                 "content": StepOutput("develop_cross_platform_strategy")
             }
         )
