@@ -373,8 +373,7 @@ PORTIA_API_KEY=your_portia_api_key
 ELEVENLABS_API_KEY=your_elevenlabs_key
 TAVILY_API_KEY=your_tavily_search_key
 OPENAI_API_KEY=your_openai_key
-INVIDEO_API_KEY=your_invideo_key (optional)
-NOTION_API_KEY=your_notion_key (optional)
+GOOGLE_API_KEY=your_google_key
 ```
 
 ## 🚀 Getting Started
